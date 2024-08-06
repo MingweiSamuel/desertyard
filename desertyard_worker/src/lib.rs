@@ -75,16 +75,18 @@ pub async fn fetch(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
     init::logging();
     let bucket = env.bucket("CCTV_BUCKET")?;
 
+    let prefix = &*format!("{BUCKET_FOLDER}/");
     let mut keys = Vec::new();
-    let mut objects = bucket
-        .list()
-        .prefix(format!("{BUCKET_FOLDER}/"))
-        .execute()
-        .await?;
+    let mut objects = bucket.list().prefix(prefix).execute().await?;
 
     keys.extend(objects.objects().iter().map(Object::key));
     while let Some(cursor) = objects.cursor() {
-        objects = bucket.list().cursor(cursor).execute().await?;
+        objects = bucket
+            .list()
+            .cursor(cursor)
+            .prefix(prefix)
+            .execute()
+            .await?;
         keys.extend(objects.objects().iter().map(Object::key));
     }
 
