@@ -104,7 +104,7 @@ pub async fn fetch(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .with_header("Access-Control-Allow-Methods", "GET")?
         .with_header("Access-Control-Allow-Origin", "*")?
         .with_header("Access-Control-Max-Age", "86400")?
-        .with_header("Cache-Control", "max-age=180, public")?
+        .with_header("Cache-Control", "no-cache")?
         .with_header("Content-Type", "application/json")?
         .fixed(out))
 }
