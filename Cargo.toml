@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "desertyard_worker",
+]
+resolver = "2"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"

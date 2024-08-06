@@ -1,0 +1,21 @@
+[package]
+name = "cm_worker"
+version = "0.0.0"
+authors = ["Mingwei Samuel <mingwei.samuel@gmail.com>"]
+edition = "2021"
+
+[lib]
+# Include "rlib" so rust-analyzer will actually show diagnostics.
+crate-type = ["rlib", "cdylib"]
+
+[features]
+
+[dependencies]
+anyhow = "1.0.86"
+log = "0.4.21"
+reqwest = "0.12.5"
+wasm-bindgen = "0.2.92"
+wasm-bindgen-futures = "0.4.42"
+web-sys = "0.3.69"
+web-time = "1.1.0"
+worker = { version = "0.3.2", features = [] }

@@ -1,0 +1,15 @@
+/.wrangler/
+/node_modules/
+/target/
+/rustc-ice-*.txt
+build/
+.DS_Store
+node_modules
+.env
+.env.*
+!.env.example
+.vercel
+.output
+.npmrc
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

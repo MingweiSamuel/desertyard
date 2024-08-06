@@ -1,0 +1,28 @@
+# read more about configuring your Worker via wrangler.toml at:
+# https://developers.cloudflare.com/workers/cli-wrangler/configuration
+
+name = "desertyard"
+workers_dev = true
+compatibility_date = "2022-01-20"
+compatibility_flags = ["streams_enable_constructors"]
+main = "desertyard_worker/build/worker/shim.mjs"
+
+[vars]
+FOO = "bar"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release" # required
+cwd = "desertyard_worker"
+watch_dir = "desertyard_worker/src"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[rules]]
+globs = ["**/*.wasm"]
+type = "CompiledWasm"
+fallthrough = false
+
+[[r2_buckets]]
+binding = 'CCTV_BUCKET'
+bucket_name = 'desertyard-bucket'

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Desert Yard CCTV TV722 Timeline</title>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 1vh;
+    }
+
+    h1 {
+      font-size: 3vh;
+    }
+
+    .column {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .canvas-container {
+      flex-grow: 1;
+      flex-shrink: 100;
+    }
+    canvas {
+      width: 100%;
+      max-width: 100vh;
+      image-rendering: pixelated;
+    }
+
+    .slider-container, .button-container {
+      padding: 0 2vh;
+      max-width: 100vh;
+      box-sizing: border-box;
+    }
+    .slider-container>input {
+      width: 100%;
+    }
+
+    .button-container {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="column">
+    <h1>TV722 -- I-880 : At JNO 7th Street</h1>
+    <div class="canvas-container">
+      <canvas width="320" height="260"></canvas>
+    </div>
+    <div class="slider-container">
+      <input type="range" min="0" max="1" value="1"><!-- TODO -->
+    </div>
+    <div class="button-container">
+      <input id="prev" type="button" value="◀️" /><input id="next" type="button" value="▶️" />
+    </div>
+  </div>
+  <script>
+    const IMGS = [
+      // TODO
+      'https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?1722957885572',
+    ];
+
+    const slider = document.querySelector('.slider-container>input');
+    slider.addEventListener('input', e => showImg(+e.target.value));
+
+    document.getElementById('prev').addEventListener('click', e => showImg(--slider.value));
+    document.getElementById('next').addEventListener('click', e => showImg(++slider.value));
+
+    const canvas = document.getElementsByTagName('canvas')[0];
+    const img = new Image();
+    img.onload = function() {
+      canvas.getContext('2d').drawImage(this, 0, 0);
+    };
+    function showImg(i) {
+      if (0 <= i && i < IMGS.length) img.src = IMGS[i];
+    }
+    showImg(+slider.max);
+  </script>
+</body>
+</html>
