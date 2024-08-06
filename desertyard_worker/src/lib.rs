@@ -3,14 +3,19 @@
 #![feature(once_cell_try)]
 
 mod init;
+
+use std::fmt::Write;
+
 use web_time::SystemTime;
 use worker::{
-    event, Context, Data, Env, HttpMetadata, Request, Response, Result, ScheduleContext,
+    event, Context, Data, Env, HttpMetadata, Object, Request, Response, Result, ScheduleContext,
     ScheduledEvent,
 };
 
 /// Image URL for CCTV camera.
 pub const CCTV_URL: &str = "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg";
+/// R2 bucket folder name.
+pub const BUCKET_FOLDER: &str = "tv722";
 
 /// Cron update job which uploads a CCTV image to the R2 bucket.
 #[event(scheduled)]
@@ -25,25 +30,31 @@ pub async fn scheduled(event: ScheduledEvent, env: Env, ctx: ScheduleContext) {
         let start = SystemTime::now();
         let epoch_secs = start.duration_since(SystemTime::UNIX_EPOCH)?.as_secs();
         // Round (mostly down) to the nearest 5 minutes.
-        let epoch_secs = 300 * ((50 + epoch_secs) / 300);
+        let epoch_rounded = 300 * ((50 + epoch_secs) / 300);
+        log::info!("Fetching CCTV image for time {epoch_rounded} ({epoch_secs}).");
 
-        let resp = init::client(&env)?
+        let resp = init::client()?
             .get(CCTV_URL)
             .send()
             .await?
             .error_for_status()?;
         // Image is very small and easily fits into memory.
         let bytes = resp.bytes().await?;
+        log::info!("Downloaded image ({} kib)", bytes.len() / 1024);
+
         let value = Data::Bytes(bytes.into());
+        let key = format!("{BUCKET_FOLDER}/{epoch_rounded}.jpg");
         let _object = env
             .bucket("CCTV_BUCKET")?
-            .put(format!("tv722/{}.jpg", epoch_secs), value)
+            .put(key.clone(), value)
             .http_metadata(HttpMetadata {
                 cache_control: Some("max-age=604800, public".to_owned()),
                 ..Default::default()
             })
             .execute()
             .await?;
+        log::info!("Successfully uploaded {key} to R2.");
+
         Ok(())
     }
 
@@ -60,8 +71,34 @@ pub async fn scheduled(event: ScheduledEvent, env: Env, ctx: ScheduleContext) {
 
 /// Cloudflare fetch request handler.
 #[event(fetch)]
-pub async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
+pub async fn fetch(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
     init::logging();
-    log::info!("Request!");
-    Response::ok("Hello World!")
+    let bucket = env.bucket("CCTV_BUCKET")?;
+
+    let mut keys = Vec::new();
+    let mut objects = bucket
+        .list()
+        .prefix(format!("{BUCKET_FOLDER}/"))
+        .execute()
+        .await?;
+
+    keys.extend(objects.objects().iter().map(Object::key));
+    while let Some(cursor) = objects.cursor() {
+        objects = bucket.list().cursor(cursor).execute().await?;
+        keys.extend(objects.objects().iter().map(Object::key));
+    }
+
+    keys.sort_unstable();
+
+    {
+        let mut out = String::with_capacity(keys.len() * keys[0].len() + 32);
+        out.push('[');
+        for key in keys {
+            write!(&mut out, "{:?},", key).unwrap();
+        }
+        out.pop(); // Remove trailing comma.
+        out.push(']');
+
+        Response::ok(out)
+    }
 }

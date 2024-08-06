@@ -53,19 +53,23 @@
       <canvas width="320" height="260"></canvas>
     </div>
     <div class="slider-container">
-      <input type="range" min="0" max="1" value="1"><!-- TODO -->
+      <input type="range" min="0" max="0" value="0">
     </div>
     <div class="button-container">
       <input id="prev" type="button" value="◀️" /><input id="next" type="button" value="▶️" />
     </div>
   </div>
   <script>
-    const IMGS = [
-      // TODO
+    const slider = document.querySelector('.slider-container>input');
+    let imgs = [
       'https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?1722957885572',
     ];
+    fetch('https://api.desertyard.com/').then(resp => resp.json()).then(oldImgs => {
+      imgs = [...oldImgs, ...imgs];
+      slider.max = imgs.length - 1;
+      slider.value = imgs.length - 1;
+    });
 
-    const slider = document.querySelector('.slider-container>input');
     slider.addEventListener('input', e => showImg(+e.target.value));
 
     document.getElementById('prev').addEventListener('click', e => showImg(--slider.value));
@@ -77,7 +81,7 @@
       canvas.getContext('2d').drawImage(this, 0, 0);
     };
     function showImg(i) {
-      if (0 <= i && i < IMGS.length) img.src = IMGS[i];
+      if (0 <= i && i < imgs.length) img.src = imgs[i];
     }
     showImg(+slider.max);
   </script>

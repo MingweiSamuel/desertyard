@@ -4,7 +4,7 @@ use std::sync::{Once, OnceLock};
 
 use reqwest::Client;
 use web_sys::console;
-use worker::{console_error, console_log, Env};
+use worker::{console_error, console_log};
 
 /// Initialize [`log`] logging into Cloudflare's [`console`] logging system, if not already
 /// initialized.
@@ -55,7 +55,7 @@ pub fn logging() {
     });
 }
 
-pub fn client(_env: &Env) -> worker::Result<&'static Client> {
+pub fn client() -> worker::Result<&'static Client> {
     static ONCE: OnceLock<Client> = OnceLock::new();
     ONCE.get_or_try_init(|| {
         let user_agent = format!(
