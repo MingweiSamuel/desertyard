@@ -4,7 +4,7 @@
 
 mod init;
 
-use std::fmt::Write;
+use std::io::Write;
 
 use web_time::SystemTime;
 use worker::{
@@ -90,15 +90,21 @@ pub async fn fetch(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     keys.sort_unstable();
 
+    let mut out = Vec::with_capacity(keys.len() * keys[0].bytes().len() + 32);
     {
-        let mut out = String::with_capacity(keys.len() * keys[0].len() + 32);
-        out.push('[');
+        out.push(b'[');
         for key in keys {
             write!(&mut out, "{:?},", key).unwrap();
         }
         out.pop(); // Remove trailing comma.
-        out.push(']');
-
-        Response::ok(out)
+        out.push(b']');
     }
+
+    Ok(Response::builder()
+        .with_header("Access-Control-Allow-Methods", "GET")?
+        .with_header("Access-Control-Allow-Origin", "*")?
+        .with_header("Access-Control-Max-Age", "86400")?
+        .with_header("Cache-Control", "max-age=180, public")?
+        .with_header("Content-Type", "application/json")?
+        .fixed(out))
 }

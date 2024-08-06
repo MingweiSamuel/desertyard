@@ -62,10 +62,10 @@
   <script>
     const slider = document.querySelector('.slider-container>input');
     let imgs = [
-      'https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?1722957885572',
+      `https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?${Date.now()}`,
     ];
-    fetch('https://api.desertyard.com/').then(resp => resp.json()).then(oldImgs => {
-      imgs = [...oldImgs, ...imgs];
+    fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(paths => {
+      imgs = [...paths.map(path => `https://img.desertyard.com/${path}`), ...imgs];
       slider.max = imgs.length - 1;
       slider.value = imgs.length - 1;
     });
