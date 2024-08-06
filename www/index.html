@@ -64,18 +64,29 @@
     let imgs = [
       `https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?${Date.now()}`,
     ];
-    fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(paths => {
-      imgs = [...paths.map(path => `https://img.desertyard.com/${path}`), ...imgs];
-      slider.max = imgs.length - 1;
-      slider.value = imgs.length - 1;
+    function updateImgs() {
+      fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(paths => {
+        imgs = [
+          ...paths.map(path => `https://img.desertyard.com/${path}`),
+          `https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?${Date.now()}`,
+        ];
+        const onLatest = slider.max === slider.value;
+        slider.max = imgs.length - 1;
+        if (onLatest) {
+          slider.value = imgs.length - 1;
+          showImg(+slider.value);
+        }
 
-      const cache = imgs.map((url, i) => {
-        let img = new Image();
-        img.onload = () => cache[i] = null;
-        img.src = url;
-        return img;
+        const cache = imgs.map((url, i) => {
+          let img = new Image();
+          img.onload = () => cache[i] = null;
+          img.src = url;
+          return img;
+        });
       });
-    });
+    }
+    setInterval(updateImgs, 30 * 1000);
+    updateImgs();
 
     slider.addEventListener('input', e => showImg(+e.target.value));
 
@@ -90,7 +101,7 @@
     function showImg(i) {
       if (0 <= i && i < imgs.length) img.src = imgs[i];
     }
-    showImg(+slider.max);
+    showImg(0);
   </script>
 </body>
 </html>
