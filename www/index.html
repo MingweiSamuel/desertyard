@@ -68,6 +68,13 @@
       imgs = [...paths.map(path => `https://img.desertyard.com/${path}`), ...imgs];
       slider.max = imgs.length - 1;
       slider.value = imgs.length - 1;
+
+      const cache = imgs.map((url, i) => {
+        let img = new Image();
+        img.onload = () => cache[i] = null;
+        img.src = url;
+        return img;
+      });
     });
 
     slider.addEventListener('input', e => showImg(+e.target.value));

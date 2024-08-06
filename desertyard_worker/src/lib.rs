@@ -34,7 +34,7 @@ pub async fn scheduled(event: ScheduledEvent, env: Env, ctx: ScheduleContext) {
         log::info!("Fetching CCTV image for time {epoch_rounded} ({epoch_secs}).");
 
         let resp = init::client()?
-            .get(CCTV_URL)
+            .get(format!("{CCTV_URL}?{epoch_secs}")) // Prevent caching.
             .send()
             .await?
             .error_for_status()?;
