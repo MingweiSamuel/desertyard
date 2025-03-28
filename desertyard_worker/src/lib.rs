@@ -20,10 +20,16 @@ pub const R2_IMGS_JSON: &str = "imgs.json";
 /// URLs for CCTV cameras. Keys are the camera name/bucket folder, and values are the image URLs.
 pub const CCTV_URLS: LazyCell<BTreeMap<&'static str, &'static str>> = LazyCell::new(|| {
     [
-        ("tv721", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv721i880at7thst/tv721i880at7thst.jpg"),
-        ("tv722", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg"),
+        ("tv802", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv802i680atbayshorerd/tv802i680atbayshorerd.jpg"),
+        ("tv793", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv793i680southofi780/tv793i680southofi780.jpg"),
+        ("tv518", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv518i580atbayviewav/tv518i580atbayviewav.jpg"),
+        ("tv517", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv517i580atcentralave/tv517i580atcentralave.jpg"),
         ("tv726", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv726i880atjct80/tv726i880atjct80.jpg"),
         ("tv727", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv727i880n880atgrandav/tv727i880n880atgrandav.jpg"),
+        ("tv722", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg"),
+        ("tv721", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv721i880at7thst/tv721i880at7thst.jpg"),
+        ("tv720", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv720i880atbroadwayofr/tv720i880atbroadwayofr.jpg"),
+        ("tvb26", "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tvb26i88016thavenueovercross/tvb26i88016thavenueovercross.jpg"),
     ].into_iter().collect()
 });
 
