@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled",
+    "build": "wrangler build",
+    "deploy": "wrangler deploy"
+  },
   "devDependencies": {
     "wrangler": "^4.5.1"
   }

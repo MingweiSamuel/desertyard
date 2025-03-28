@@ -70,7 +70,7 @@
       `https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?${Date.now()}`,
     ];
     function updateImgs() {
-      fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(paths => {
+      fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(({ tv722: paths }) => {
         imgs = [
           ...paths.slice(-NUM_IMGS).map(path => `https://img.desertyard.com/${path}`),
           `https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?${Date.now()}`,

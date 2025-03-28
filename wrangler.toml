@@ -17,7 +17,7 @@ cwd = "desertyard_worker"
 watch_dir = "desertyard_worker/src"
 
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["*/2 * * * *"]
 
 [[rules]]
 globs = ["**/*.wasm"]

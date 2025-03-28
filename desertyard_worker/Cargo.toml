@@ -1,21 +1,24 @@
 [package]
 name = "desertyard_worker"
 version = "0.0.0"
-authors = ["Mingwei Samuel <mingwei.samuel@gmail.com>"]
+authors = [ "Mingwei Samuel <mingwei.samuel@gmail.com>" ]
 edition = "2024"
 
 [lib]
 # Include "rlib" so rust-analyzer will actually show diagnostics.
-crate-type = ["rlib", "cdylib"]
+crate-type = [ "rlib", "cdylib" ]
 
 [features]
 
 [dependencies]
 anyhow = "1.0.86"
+futures = "0.3.0"
+hex = "0.4.3"
 log = "0.4.21"
+md5 = "0.7.0"
 reqwest = "0.12.5"
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
 web-sys = "0.3.69"
 web-time = "1.1.0"
-worker = { version = "0.5.0", features = [] }
+worker = { version = "0.5.0", features = [  ] }
