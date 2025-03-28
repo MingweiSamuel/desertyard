@@ -1,6 +1,7 @@
 {
   "scripts": {
     "dev": "wrangler dev --test-scheduled",
+    "serve": "wrangler pages dev www",
     "build": "wrangler build",
     "deploy": "wrangler deploy"
   },

@@ -5,7 +5,6 @@
 mod init;
 
 use std::cell::LazyCell;
-use std::cmp::Reverse;
 use std::collections::BTreeMap;
 use std::io::Write;
 
@@ -103,8 +102,8 @@ pub async fn fetch(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
                     .await?;
                 objects.extend(listing.objects());
             }
-            // Sort objects by upload time (newest first).
-            objects.sort_unstable_by_key(|obj| Reverse(obj.uploaded().as_millis()));
+            // Sort objects by upload time (oldest first).
+            objects.sort_unstable_by_key(|obj| obj.uploaded().as_millis());
 
             let mut out = Vec::with_capacity(
                 32 + cctv_name.as_bytes().len()

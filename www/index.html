@@ -15,25 +15,22 @@
       font-size: 3vh;
     }
 
-    .column {
+    .controls {
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 1vh 0;
+      position: fixed;
       width: 100%;
       display: flex;
       flex-direction: column;
-      align-items: stretch;
+      align-items: center;
+      background-color: white;
     }
-
-    .canvas-container {
-      flex-grow: 1;
-      flex-shrink: 100;
-    }
-    canvas {
-      width: 100%;
-      max-width: 100vh;
-      image-rendering: pixelated;
-    }
-
     .slider-container, .button-container {
+      flex-grow: 1;
       padding: 0 2vh;
+      width: 100%;
       max-width: 100vh;
       box-sizing: border-box;
     }
@@ -44,50 +41,86 @@
     .button-container {
       text-align: center;
     }
+
+    .views {
+      margin-top: 40px;
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .canvas-container {
+      flex-grow: 1;
+      flex-shrink: 100;
+      width: 100%;
+      max-width: 400px;
+    }
+    canvas {
+      width: 100%;
+      max-width: 100vh;
+      image-rendering: pixelated;
+    }
   </style>
 </head>
 <body>
-  <div class="column">
-    <h1>TV722 -- I-880 : At JNO 7th Street</h1>
-    <div class="canvas-container">
-      <canvas width="320" height="260"></canvas>
-    </div>
+  <div class="controls">
     <div class="slider-container">
-      <input type="range" min="0" max="1" value="1">
+      <input type="range" max="-1" value="-1">
     </div>
     <div class="button-container">
       <input id="prev" type="button" value="◀️" /><input id="next" type="button" value="▶️" />
     </div>
   </div>
+  <div class="views">
+  </div>
   <script>
+    const CCTV_URLS = {
+      "tv727": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv727i880n880atgrandav/tv727i880n880atgrandav.jpg",
+      "tv726": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv726i880atjct80/tv726i880atjct80.jpg",
+      "tv722": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg",
+      "tv721": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv721i880at7thst/tv721i880at7thst.jpg",
+    };
     const NUM_IMGS = 7 * 24 * 60 / 5;
 
     const slider = document.querySelector('.slider-container>input');
-    slider.max = NUM_IMGS - 1;
-    slider.value = NUM_IMGS - 1;
+    slider.min = -NUM_IMGS;
 
-    let imgs = [
-      `https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?${Date.now()}`,
-    ];
+    const views = document.querySelector('.views');
+    for (const key in CCTV_URLS) {
+      const h1 = document.createElement('h1');
+      h1.innerText = key;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 260;
+      canvas.dataset.key = key;
+
+      const div = document.createElement('div');
+      div.classList.add('canvas-container');
+      div.appendChild(h1);
+      div.appendChild(canvas);
+      views.appendChild(div);
+    }
+
+    const cctvImgs = Object.fromEntries(Object.entries(CCTV_URLS).map(([key, url]) => [key, [url]]));
     function updateImgs() {
-      fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(({ tv722: paths }) => {
-        imgs = [
-          ...paths.slice(-NUM_IMGS).map(path => `https://img.desertyard.com/${path}`),
-          `https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg?${Date.now()}`,
-        ];
-        const onLatest = slider.max === slider.value;
-        slider.max = imgs.length - 1;
-        if (onLatest) {
-          slider.value = imgs.length - 1;
-        }
-        showImg(+slider.value);
+      fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(cctvPaths => {
+        for (const key in cctvPaths) {
+          const imgs = cctvImgs[key];
+          const paths = cctvPaths[key];
+          imgs.splice(0, imgs.length - 1, ...paths.slice(-NUM_IMGS).map(path => `https://img.desertyard.com/${path}`));
 
-        const cache = imgs.map((url, i) => {
-          const img = new Image();
-          img.onload = () => cache[i] = null;
-          img.src = url;
-          return img;
-        });
+          const cache = imgs.map((url, i) => {
+            const img = new Image();
+            img.onload = () => cache[i] = null;
+            img.src = url;
+            return img;
+          });
+        }
+        const min = -Object.values(cctvImgs).reduce((max, imgs) => Math.max(max, imgs.length - 1), 0);
+        slider.min = min;
+        showImg(+slider.value);
       });
     }
     setInterval(updateImgs, 30 * 1000);
@@ -98,13 +131,18 @@
     document.getElementById('prev').addEventListener('click', e => showImg(--slider.value));
     document.getElementById('next').addEventListener('click', e => showImg(++slider.value));
 
-    const canvas = document.getElementsByTagName('canvas')[0];
-    const img = new Image();
-    img.onload = function() {
-      canvas.getContext('2d').drawImage(this, 0, 0);
-    };
-    function showImg(i) {
-      if (0 <= i && i < imgs.length) img.src = imgs[i];
+    const canvases = document.getElementsByTagName('canvas');
+    function showImg(neg) {
+      for (const canvas of canvases) {
+        const key = canvas.dataset.key;
+        const imgs = cctvImgs[key];
+        const j = Math.max(0, Math.min(imgs.length + neg, imgs.length - 1));
+        const img = new Image();
+        img.onload = function() {
+          canvas.getContext('2d').drawImage(this, 0, 0);
+        };
+        img.src = imgs[j];
+      }
     }
     showImg(0);
   </script>
