@@ -6,14 +6,16 @@ mod init;
 
 use std::cell::LazyCell;
 use std::collections::BTreeMap;
-use std::io::Write;
 
 use futures::future::{join_all, try_join_all};
 use web_time::SystemTime;
 use worker::{
-    Context, Data, Env, HttpMetadata, Request, Response, Result, ScheduleContext, ScheduledEvent,
-    event,
+    Context, Data, Env, HttpMetadata, Method, Object, Request, Response, Result, ScheduleContext,
+    ScheduledEvent, event,
 };
+
+/// R2 key for the CCTV images list, pre-computed.
+pub const R2_IMGS_JSON: &str = "imgs.json";
 
 /// URLs for CCTV cameras. Keys are the camera name/bucket folder, and values are the image URLs.
 pub const CCTV_URLS: LazyCell<BTreeMap<&'static str, &'static str>> = LazyCell::new(|| {
@@ -29,6 +31,8 @@ pub const CCTV_URLS: LazyCell<BTreeMap<&'static str, &'static str>> = LazyCell::
 #[event(scheduled)]
 pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) {
     init::logging();
+
+    let cctv_urls = &*CCTV_URLS;
 
     async fn transfer_cctv(env: &Env, cctv_name: &str, cctv_url: &str) -> anyhow::Result<()> {
         let start = SystemTime::now();
@@ -51,6 +55,7 @@ pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) 
             .bucket("CCTV_BUCKET")?
             .put(bucket_key.clone(), bucket_data)
             .http_metadata(HttpMetadata {
+                // Set a long cache expiration for the images, as they never change.
                 cache_control: Some("max-age=604800, public".to_owned()),
                 ..Default::default()
             })
@@ -61,7 +66,6 @@ pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) 
         Ok(())
     }
 
-    let cctv_urls = &*CCTV_URLS;
     let tasks = cctv_urls.iter().map(|(cctv_name, cctv_url)| {
         let env = &env;
         async move {
@@ -76,72 +80,87 @@ pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) 
         }
     });
     let _done = join_all(tasks).await;
+
+    // Pre-compute the list of images for each CCTV camera and store it in R2 as JSON.
+    {
+        let bucket = env.bucket("CCTV_BUCKET").unwrap();
+        let tasks = cctv_urls.iter().map(|(cctv_name, _cctv_url)| {
+            let bucket = &bucket;
+            async move {
+                let prefix = &*format!("{cctv_name}/");
+                let mut objects = Vec::new();
+                let mut listing = bucket.list().prefix(prefix).execute().await?;
+
+                objects.extend(listing.objects());
+                while let Some(cursor) = listing.cursor() {
+                    listing = bucket
+                        .list()
+                        .cursor(cursor)
+                        .prefix(prefix)
+                        .execute()
+                        .await?;
+                    objects.extend(listing.objects());
+                }
+                // Sort objects by upload time (oldest first).
+                objects.sort_unstable_by_key(|obj| obj.uploaded().as_millis());
+
+                Result::Ok((
+                    cctv_name,
+                    objects.iter().map(Object::key).collect::<Vec<_>>(),
+                ))
+            }
+        });
+        let dict = try_join_all(tasks)
+            .await
+            .unwrap()
+            .into_iter()
+            .collect::<BTreeMap<_, _>>();
+
+        bucket
+            .put(
+                R2_IMGS_JSON,
+                Data::Bytes(serde_json::to_vec(&dict).unwrap()),
+            )
+            .http_metadata(HttpMetadata {
+                // Prevent caching of the JSON file, as it updates frequently.
+                cache_control: Some("no-cache".to_owned()),
+                ..Default::default()
+            })
+            .execute()
+            .await
+            .unwrap();
+    }
 }
 
 /// Cloudflare fetch request handler.
 #[event(fetch)]
-pub async fn fetch(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
+pub async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     init::logging();
-    let bucket = env.bucket("CCTV_BUCKET")?;
 
-    let cctv_urls = &*CCTV_URLS;
-    let tasks = cctv_urls.into_iter().map(|(cctv_name, _cctv_url)| {
-        let bucket = &bucket;
-        async move {
-            let prefix = &*format!("{cctv_name}/");
-            let mut objects = Vec::new();
-            let mut listing = bucket.list().prefix(prefix).execute().await?;
-
-            objects.extend(listing.objects());
-            while let Some(cursor) = listing.cursor() {
-                listing = bucket
-                    .list()
-                    .cursor(cursor)
-                    .prefix(prefix)
-                    .execute()
-                    .await?;
-                objects.extend(listing.objects());
-            }
-            // Sort objects by upload time (oldest first).
-            objects.sort_unstable_by_key(|obj| obj.uploaded().as_millis());
-
-            let mut out = Vec::with_capacity(
-                32 + cctv_name.as_bytes().len()
-                    + objects.len() * (1 + objects.first().map_or(0, |o| o.key().as_bytes().len())),
-            );
-            {
-                write!(&mut out, "{:?}:", cctv_name).unwrap();
-                out.push(b'[');
-                for object in objects {
-                    write!(&mut out, "{:?},", object.key()).unwrap();
-                }
-                if b',' == *out.last().unwrap() {
-                    out.pop(); // Remove trailing comma.
-                }
-                out.push(b']');
-            }
-            Result::Ok(out)
-        }
-    });
-    let rows = try_join_all(tasks).await?;
-    assert_ne!(0, rows.len(), "No CCTV cameras found!");
-
-    let mut out = Vec::with_capacity(2 + rows.len() + rows.iter().map(|v| v.len()).sum::<usize>());
-    {
-        out.push(b'{');
-        for row in rows {
-            out.extend(row);
-            out.push(b',');
-        }
-        out.pop(); // Remove trailing comma.
-        out.push(b'}');
+    // Ensure we only handle GET requests.
+    if Method::Get != req.method() {
+        return Response::error("Method not allowed", 405);
     }
 
-    Ok(Response::builder()
-        .with_header("Access-Control-Allow-Methods", "GET")?
-        .with_header("Access-Control-Allow-Origin", "*")?
-        .with_header("Access-Control-Max-Age", "86400")?
-        .with_header("Cache-Control", "no-cache")?
-        .with_header("Content-Type", "application/json")?
-        .fixed(out))
+    match req.path().strip_prefix("/") {
+        Some("imgs") => {
+            // Serve the pre-computed list of CCTV images.
+            let bucket = env.bucket("CCTV_BUCKET")?;
+
+            let resp = Response::builder()
+                .with_header("Access-Control-Allow-Methods", "GET")?
+                .with_header("Access-Control-Allow-Origin", "*")?
+                .with_header("Access-Control-Max-Age", "86400")?
+                .with_header("Cache-Control", "no-cache")?;
+
+            let Some(object) = bucket.get(R2_IMGS_JSON).execute().await? else {
+                return Ok(resp.with_status(204).empty());
+            };
+            let bytes = object.body().unwrap().bytes().await.unwrap();
+            Ok(resp
+                .with_header("Content-Type", "application/json")?
+                .fixed(bytes))
+        }
+        _ => Response::error(format!("Path not found: {:?}", req.path()), 404),
+    }
 }
