@@ -1,8 +1,8 @@
 [package]
-name = "cm_worker"
+name = "desertyard_worker"
 version = "0.0.0"
 authors = ["Mingwei Samuel <mingwei.samuel@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
 [lib]
 # Include "rlib" so rust-analyzer will actually show diagnostics.
@@ -18,4 +18,4 @@ wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
 web-sys = "0.3.69"
 web-time = "1.1.0"
-worker = { version = "0.3.2", features = [] }
+worker = { version = "0.5.0", features = [] }

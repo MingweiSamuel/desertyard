@@ -12,7 +12,7 @@ pub fn logging() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
         {
-            fn hook(info: &std::panic::PanicInfo) {
+            fn hook(info: &std::panic::PanicHookInfo) {
                 console_error!("{}", info);
             }
             std::panic::set_hook(Box::new(hook));
