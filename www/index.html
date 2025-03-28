@@ -8,24 +8,49 @@
     html,
     body {
       margin: 0;
-      padding: 1vh;
+      padding: 0;
     }
 
     h1 {
       font-size: 3vh;
     }
 
+    .views {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+
+      padding: 1vh;
+      box-sizing: border-box;
+    }
+    .canvas-container {
+      flex-grow: 1;
+      flex-shrink: 100;
+      width: 100%;
+      max-width: 400px;
+    }
+    canvas {
+      width: 100%;
+      max-width: 100vh;
+      image-rendering: pixelated;
+    }
+
     .controls {
       position: sticky;
-      top: 0;
+      bottom: 0;
       width: 100%;
       padding: 1vh 0;
+      margin-top: 2vh;
 
       display: flex;
       flex-direction: column;
       align-items: center;
 
       background-color: white;
+      border-top: 1px solid black;
+      box-shadow: 0 -5px 5px rgba(0, 0, 0, 0.3);
       touch-action: none;
     }
     .slider-container, .button-container {
@@ -44,28 +69,11 @@
     .button-container>input {
       font-size: 200%;
     }
-
-    .views {
-      width: 100%;
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .canvas-container {
-      flex-grow: 1;
-      flex-shrink: 100;
-      width: 100%;
-      max-width: 400px;
-    }
-    canvas {
-      width: 100%;
-      max-width: 100vh;
-      image-rendering: pixelated;
-    }
   </style>
 </head>
 <body>
+  <div class="views">
+  </div>
   <div class="controls">
     <div class="slider-container">
       <input type="range" max="-1" value="-1" />
@@ -73,8 +81,6 @@
     <div class="button-container">
       <input id="prev" type="button" value="◀️" /><input id="next" type="button" value="▶️" />
     </div>
-  </div>
-  <div class="views">
   </div>
   <script>
     const CCTV_URLS = {
