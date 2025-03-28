@@ -16,16 +16,17 @@
     }
 
     .controls {
+      position: sticky;
       top: 0;
-      left: 0;
-      right: 0;
-      padding: 1vh 0;
-      position: fixed;
       width: 100%;
+      padding: 1vh 0;
+
       display: flex;
       flex-direction: column;
       align-items: center;
+
       background-color: white;
+      touch-action: none;
     }
     .slider-container, .button-container {
       flex-grow: 1;
@@ -37,13 +38,14 @@
     .slider-container>input {
       width: 100%;
     }
-
     .button-container {
       text-align: center;
     }
+    .button-container>input {
+      font-size: 200%;
+    }
 
     .views {
-      margin-top: 40px;
       width: 100%;
       display: flex;
       flex-direction: row;
@@ -66,7 +68,7 @@
 <body>
   <div class="controls">
     <div class="slider-container">
-      <input type="range" max="-1" value="-1">
+      <input type="range" max="-1" value="-1" />
     </div>
     <div class="button-container">
       <input id="prev" type="button" value="◀️" /><input id="next" type="button" value="▶️" />
@@ -103,13 +105,28 @@
       views.appendChild(div);
     }
 
-    const cctvImgs = Object.fromEntries(Object.entries(CCTV_URLS).map(([key, url]) => [key, [url]]));
+    // Disable inputs before initial fetch.
+    for (const input of document.getElementsByTagName('input')) {
+      input.disabled = true;
+    }
+
+    const cctvImgs = Object.fromEntries(Object.entries(CCTV_URLS).map(([key, url]) => [key, [`${url}?${Date.now()}`]]));
     function updateImgs() {
       fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(cctvPaths => {
+        // Enable inputs on first successful fetch.
+        for (const input of document.getElementsByTagName('input')) {
+          input.disabled = false;
+        }
+
         for (const key in cctvPaths) {
           const imgs = cctvImgs[key];
           const paths = cctvPaths[key];
-          imgs.splice(0, imgs.length - 1, ...paths.slice(-NUM_IMGS).map(path => `https://img.desertyard.com/${path}`));
+          imgs.splice(
+            0,
+            imgs.length,
+            ...paths.slice(-NUM_IMGS).map(path => `https://img.desertyard.com/${path}`),
+            `${CCTV_URLS[key]}?${Date.now()}`,
+          );
 
           const cache = imgs.map((url, i) => {
             const img = new Image();
