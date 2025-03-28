@@ -126,9 +126,9 @@
           input.disabled = false;
         }
 
-        for (const key in cctvPaths) {
+        for (const [key, paths] of Object.entries(cctvPaths)) {
           const imgs = cctvImgs[key];
-          const paths = cctvPaths[key];
+          if (null == imgs) continue;
           imgs.splice(
             0,
             imgs.length,
