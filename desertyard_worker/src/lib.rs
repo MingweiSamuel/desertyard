@@ -32,6 +32,8 @@ pub const CCTV_URLS: LazyCell<BTreeMap<&'static str, &'static str>> = LazyCell::
 pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) {
     init::logging();
 
+    let cctv_urls = &*CCTV_URLS;
+
     async fn transfer_cctv(env: &Env, cctv_name: &str, cctv_url: &str) -> anyhow::Result<()> {
         let start = SystemTime::now();
         let epoch_secs = start.duration_since(SystemTime::UNIX_EPOCH)?.as_secs();
@@ -53,6 +55,7 @@ pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) 
             .bucket("CCTV_BUCKET")?
             .put(bucket_key.clone(), bucket_data)
             .http_metadata(HttpMetadata {
+                // Set a long cache expiration for the images, as they never change.
                 cache_control: Some("max-age=604800, public".to_owned()),
                 ..Default::default()
             })
@@ -63,7 +66,6 @@ pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) 
         Ok(())
     }
 
-    let cctv_urls = &*CCTV_URLS;
     let tasks = cctv_urls.iter().map(|(cctv_name, cctv_url)| {
         let env = &env;
         async move {
@@ -120,6 +122,7 @@ pub async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) 
                 Data::Bytes(serde_json::to_vec(&dict).unwrap()),
             )
             .http_metadata(HttpMetadata {
+                // Prevent caching of the JSON file, as it updates frequently.
                 cache_control: Some("no-cache".to_owned()),
                 ..Default::default()
             })
