@@ -96,21 +96,32 @@
     const slider = document.querySelector('.slider-container>input');
     slider.min = -NUM_IMGS;
 
-    const views = document.querySelector('.views');
-    for (const key in CCTV_URLS) {
-      const h1 = document.createElement('h1');
-      h1.innerText = key;
+    const cctvData = Object.fromEntries(Object.entries(CCTV_URLS).map(([key, url]) => [key, {
+      urls: [`${url}?${Date.now()}`],
+      img: new Image(), // Only keep one image object to avoid flicker.
+      cache: [], // Array of images to pre-load.
+    }]));
 
-      const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 260;
-      canvas.dataset.key = key;
+    {
+      const views = document.querySelector('.views');
+      for (const key in CCTV_URLS) {
+        const h1 = document.createElement('h1');
+        h1.innerText = key;
 
-      const div = document.createElement('div');
-      div.classList.add('canvas-container');
-      div.appendChild(h1);
-      div.appendChild(canvas);
-      views.appendChild(div);
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 260;
+        canvas.dataset.key = key;
+        cctvData[key].img.onload = function() {
+          canvas.getContext('2d').drawImage(this, 0, 0);
+        };
+
+        const div = document.createElement('div');
+        div.classList.add('canvas-container');
+        div.appendChild(h1);
+        div.appendChild(canvas);
+        views.appendChild(div);
+      }
     }
 
     // Disable inputs before initial fetch.
@@ -118,7 +129,6 @@
       input.disabled = true;
     }
 
-    const cctvImgs = Object.fromEntries(Object.entries(CCTV_URLS).map(([key, url]) => [key, [`${url}?${Date.now()}`]]));
     function updateImgs() {
       fetch('https://api.desertyard.com/imgs').then(resp => resp.json()).then(cctvPaths => {
         // Enable inputs on first successful fetch.
@@ -127,23 +137,23 @@
         }
 
         for (const [key, paths] of Object.entries(cctvPaths)) {
-          const imgs = cctvImgs[key];
-          if (null == imgs) continue;
-          imgs.splice(
+          const data = cctvData[key];
+          if (null == data) continue;
+          data.urls.splice(
             0,
-            imgs.length,
+            data.urls.length,
             ...paths.slice(-NUM_IMGS).map(path => `https://img.desertyard.com/${path}`),
             `${CCTV_URLS[key]}?${Date.now()}`,
           );
 
-          const cache = imgs.map((url, i) => {
+          data.cache = data.urls.map((url, i) => {
             const img = new Image();
-            img.onload = () => cache[i] = null;
+            img.onload = () => data.cache[i] = null;
             img.src = url;
             return img;
           });
         }
-        const min = -Object.values(cctvImgs).reduce((max, imgs) => Math.max(max, imgs.length - 1), 0);
+        const min = -Object.values(cctvData).reduce((max, data) => Math.max(max, data.urls.length - 1), 0);
         slider.min = min;
         showImg(+slider.value);
       });
@@ -160,13 +170,9 @@
     function showImg(neg) {
       for (const canvas of canvases) {
         const key = canvas.dataset.key;
-        const imgs = cctvImgs[key];
-        const j = Math.max(0, Math.min(imgs.length + neg, imgs.length - 1));
-        const img = new Image();
-        img.onload = function() {
-          canvas.getContext('2d').drawImage(this, 0, 0);
-        };
-        img.src = imgs[j];
+        const data = cctvData[key];
+        const j = Math.max(0, Math.min(data.urls.length + neg, data.urls.length - 1));
+        data.img.src = data.urls[j];
       }
     }
     showImg(0);
