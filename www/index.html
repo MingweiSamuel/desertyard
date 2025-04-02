@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Desert Yard CCTV Timeline</title>
   <base target="_top">
@@ -25,12 +26,14 @@
       padding: 1vh;
       box-sizing: border-box;
     }
+
     .canvas-container {
       flex-grow: 1;
       flex-shrink: 100;
       width: 100%;
       max-width: 400px;
     }
+
     canvas {
       width: 100%;
       max-width: 100vh;
@@ -53,24 +56,30 @@
       box-shadow: 0 -5px 5px rgba(0, 0, 0, 0.3);
       touch-action: none;
     }
-    .slider-container, .button-container {
+
+    .slider-container,
+    .button-container {
       flex-grow: 1;
       padding: 0 2vh;
       width: 100%;
       max-width: 100vh;
       box-sizing: border-box;
     }
+
     .slider-container>input {
       width: 100%;
     }
+
     .button-container {
       text-align: center;
     }
+
     .button-container>input {
       font-size: 200%;
     }
   </style>
 </head>
+
 <body>
   <div class="views">
   </div>
@@ -83,14 +92,23 @@
     </div>
   </div>
   <script>
-    const CCTV_URLS = {
-      "tv726": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv726i880atjct80/tv726i880atjct80.jpg",
-      "tv727": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv727i880n880atgrandav/tv727i880n880atgrandav.jpg",
-      "tv722": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg",
-      "tv721": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv721i880at7thst/tv721i880at7thst.jpg",
-      "tv720": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv720i880atbroadwayofr/tv720i880atbroadwayofr.jpg",
-      "tvb26": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tvb26i88016thavenueovercross/tvb26i88016thavenueovercross.jpg",
-    };
+    const FULL = !!(new URLSearchParams(location.search).get('full'));
+    const CCTV_URLS = Object.assign(
+      FULL ? {
+        "tv802": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv802i680atbayshorerd/tv802i680atbayshorerd.jpg",
+        "tv793": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv793i680southofi780/tv793i680southofi780.jpg",
+        "tv518": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv518i580atbayviewav/tv518i580atbayviewav.jpg",
+        "tv517": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv517i580atcentralave/tv517i580atcentralave.jpg",
+      } : {},
+      {
+        "tv726": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv726i880atjct80/tv726i880atjct80.jpg",
+        "tv727": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv727i880n880atgrandav/tv727i880n880atgrandav.jpg",
+        "tv722": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv722i880atjno7thstreet/tv722i880atjno7thstreet.jpg",
+        "tv721": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv721i880at7thst/tv721i880at7thst.jpg",
+        "tv720": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv720i880atbroadwayofr/tv720i880atbroadwayofr.jpg",
+        "tvb26": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tvb26i88016thavenueovercross/tvb26i88016thavenueovercross.jpg",
+      },
+    );
     const NUM_IMGS = 7 * 24 * 60 / 5;
 
     const slider = document.querySelector('.slider-container>input');
@@ -112,7 +130,7 @@
         canvas.width = 320;
         canvas.height = 260;
         canvas.dataset.key = key;
-        cctvData[key].img.onload = function() {
+        cctvData[key].img.onload = function () {
           canvas.getContext('2d').drawImage(this, 0, 0);
         };
 
@@ -146,9 +164,11 @@
             `${CCTV_URLS[key]}?${Date.now()}`,
           );
 
+          // Pre-load images, low priority.
           data.cache = data.urls.map((url, i) => {
             const img = new Image();
             img.onload = () => data.cache[i] = null;
+            img.fetchPriority = i < 20 ? 'high' : 'low';
             img.src = url;
             return img;
           });
@@ -178,4 +198,5 @@
     showImg(0);
   </script>
 </body>
+
 </html>
